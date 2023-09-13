@@ -1,0 +1,131 @@
+package com.example.mygeo.ui
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+
+class MainActivity : AppCompatActivity() {
+    private lateinit var locationManager: LocationManager
+    private var locationListener: LocationListener? = null
+
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                startLocationUpdates()
+            } else {
+                Toast.makeText(
+                    applicationContext,
+                    "Para obter a localização, é necessário conceder permissão de localização.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContent {
+            MyGeo()
+        }
+
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    }
+
+    override fun onResume() {
+        super.onResume()
+        requestLocationPermission()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopLocationUpdates()
+    }
+
+    private fun requestLocationPermission() {
+        val context = this
+        val permission = Manifest.permission.ACCESS_FINE_LOCATION
+
+        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+            startLocationUpdates()
+        } else {
+            permissionLauncher.launch(permission)
+        }
+    }
+
+    private fun startLocationUpdates() {
+        locationListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                // Atualize a interface do usuário com as novas coordenadas de localização.
+                updateUIWithLocation(location)
+            }
+
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+
+            override fun onProviderEnabled(provider: String) {}
+
+            override fun onProviderDisabled(provider: String) {}
+        }
+
+        val minTimeMs = 1000L // Intervalo mínimo de atualização em milissegundos
+        val minDistanceMeters = 10.0f // Distância mínima para atualização em metros
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // aqui para solicitar as permissões ausentes e, em seguida, substituir
+            // public void onRequestPermissionsResult(int requestCode, String[] permissões,
+            // int[] grantResults)
+            // para tratar o caso em que o usuário concede a permissão. Veja a documentação
+            // para ActivityCompat#requestPermissions para mais detalhes.
+            return
+        }
+        locationManager.requestLocationUpdates(
+            LocationManager.GPS_PROVIDER,
+            minTimeMs,
+            minDistanceMeters,
+            locationListener!!
+        )
+    }
+
+    private fun stopLocationUpdates() {
+        if (locationListener != null) {
+            locationManager.removeUpdates(locationListener!!)
+            locationListener = null
+        }
+    }
+
+    private fun updateUIWithLocation(location: Location) {
+        // Atualize a interface do usuário com as coordenadas de localização.
+        // Você pode usar a Composable ou a View tradicional para exibir as coordenadas.
+    }
+}
+
+@Composable
+fun MyGeo() {
+    // Defina aqui asua interface do usuário Compose, incluindo botões, textviews, etc.
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DefaultPreview() {
+    MyGeo()
+}
